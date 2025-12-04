@@ -28,8 +28,8 @@
 
     <div id="appContainer" class="w-full max-w-4xl bg-white p-6 md:p-10 rounded-xl shadow-2xl space-y-8">
         <header class="text-center space-y-2">
-            <h1 class="text-4xl font-extrabold text-gray-800">Magic Background Remover</h1>
-            <p class="text-gray-500">Upload a picture with a white background to make it transparent.</p>
+            <h1 class="text-4xl font-extrabold text-gray-800">Магічний Видаляч Фону (Magic Background Remover)</h1>
+            <p class="text-gray-500">Завантажте зображення та оберіть колір, який потрібно зробити прозорим.</p>
         </header>
 
         <!-- File Upload Area -->
@@ -39,29 +39,63 @@
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                 </svg>
-                <span class="text-lg font-semibold text-indigo-600">Click to upload image</span>
-                <span class="text-sm text-gray-500">PNG, JPG, or GIF (max 10MB)</span>
+                <span class="text-lg font-semibold text-indigo-600">Натисніть, щоб завантажити зображення</span>
+                <span class="text-sm text-gray-500">PNG, JPG, або GIF</span>
             </label>
         </div>
 
         <!-- Status Message Area -->
         <div id="statusMessage" class="text-center font-medium h-6"></div>
 
+        <!-- Color and Tolerance Controls (NEW) -->
+        <div id="settingsArea" class="hidden bg-gray-50 p-4 rounded-lg border">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">Налаштування Фону для Видалення</h2>
+            
+            <div class="flex flex-col md:flex-row gap-6">
+                <!-- Color Picker -->
+                <div class="flex-1 space-y-2">
+                    <label for="colorInput" class="block text-sm font-medium text-gray-700">Вибрати Колір Фону (HEX):</label>
+                    <div class="flex items-center gap-3">
+                        <input type="color" id="colorInput" value="#FFFFFF" onchange="updateTargetColor(event.target.value)" 
+                               class="w-12 h-12 border border-gray-300 rounded-md cursor-pointer p-0.5">
+                        <span id="selectedColorDisplay" class="font-mono text-gray-600">#FFFFFF</span>
+                        
+                    </div>
+                    <p id="eyedropperTip" class="text-sm text-yellow-600 hidden">
+                        * Режим Піпетки Активний! Клікніть на зображенні, щоб вибрати колір.
+                    </p>
+                </div>
+
+                <!-- Tolerance Slider -->
+                <div class="flex-1 space-y-2">
+                    <label for="toleranceSlider" class="block text-sm font-medium text-gray-700">
+                        Толерантність Кольору: <span id="toleranceValue" class="font-bold text-indigo-600">10</span>
+                    </label>
+                    <input type="range" id="toleranceSlider" min="1" max="50" value="10" 
+                           oninput="updateTolerance(event.target.value)"
+                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer range-lg">
+                    <p class="text-xs text-gray-500">
+                        Вищий показник = видалення більшої кількості схожих відтінків.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
         <!-- Image Processing and Preview Area -->
         <div id="previewArea" class="hidden flex flex-col md:flex-row gap-6">
             
             <div class="flex-1 space-y-3">
-                <h2 class="text-xl font-semibold text-gray-700">Original Image</h2>
+                <h2 class="text-xl font-semibold text-gray-700">Оригінальне Зображення</h2>
                 <div class="border rounded-lg p-2 flex justify-center items-center bg-gray-100 min-h-[200px]">
-                    <img id="originalImage" class="max-w-full max-h-[300px] rounded-lg" alt="Original Uploaded Image">
+                    <img id="originalImage" class="max-w-full max-h-[300px] rounded-lg" alt="Оригінальне Завантажене Зображення">
                 </div>
             </div>
 
             <div class="flex-1 space-y-3">
-                <h2 class="text-xl font-semibold text-gray-700">Result (Transparent)</h2>
+                <h2 class="text-xl font-semibold text-gray-700">Результат (Прозорий)</h2>
                 <div class="border rounded-lg p-2 flex justify-center items-center min-h-[200px]">
                     <!-- Canvas for the processed image -->
-                    <canvas id="processedCanvas" class="max-w-full max-h-[300px] rounded-lg"></canvas>
+                    <canvas id="processedCanvas" class="max-w-full max-h-[300px] rounded-lg cursor-pointer"></canvas>
                 </div>
             </div>
         </div>
@@ -69,11 +103,11 @@
         <!-- Controls -->
         <div id="controls" class="hidden flex flex-col sm:flex-row justify-center gap-4 pt-4">
             <button id="processButton" onclick="processImage()" class="px-6 py-3 bg-indigo-600 text-white font-bold rounded-lg shadow-lg hover:bg-indigo-700 transition duration-150 transform hover:scale-105 disabled:opacity-50" disabled>
-                Remove White Background
+                Видалити Вибраний Фон
             </button>
             <a id="downloadLink" download="transparent_image.png" class="hidden">
                 <button class="px-6 py-3 bg-green-500 text-white font-bold rounded-lg shadow-lg hover:bg-green-600 transition duration-150 transform hover:scale-105">
-                    Download PNG
+                    Завантажити PNG
                 </button>
             </a>
         </div>
@@ -88,9 +122,148 @@
         const previewArea = document.getElementById('previewArea');
         const processButton = document.getElementById('processButton');
         const downloadLink = document.getElementById('downloadLink');
+        const settingsArea = document.getElementById('settingsArea'); // NEW
+        const colorInput = document.getElementById('colorInput'); // NEW
+        const selectedColorDisplay = document.getElementById('selectedColorDisplay'); // NEW
+        const toleranceSlider = document.getElementById('toleranceSlider'); // NEW
+        const toleranceValueSpan = document.getElementById('toleranceValue'); // NEW
+        const eyedropperTip = document.getElementById('eyedropperTip'); // NEW
 
         let originalImg = null; // Stores the HTML image element
         let ctx = processedCanvas.getContext('2d');
+        
+        // Custom color removal state (NEW)
+        let targetRgb = { r: 255, g: 255, b: 255 }; // Default to white
+        let tolerance = 10; // Default tolerance
+        let isEyedropperActive = false; // State for eyedropper mode
+
+        /**
+         * Utility function to convert HEX color string to RGB object.
+         * @param {string} hex The hex color string (e.g., "#FF0000").
+         * @returns {object|null} RGB object {r, g, b} or null on failure.
+         */
+        function hexToRgb(hex) {
+            // Remove '#' if present
+            const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+            hex = hex.replace(shorthandRegex, function(m, r, g, b) {
+                return r + r + g + g + b + b;
+            });
+
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : null;
+        }
+
+        /**
+         * Updates the target RGB color based on the color picker value.
+         * @param {string} hexColor The new hex color from the input.
+         */
+        function updateTargetColor(hexColor) {
+            const rgb = hexToRgb(hexColor);
+            if (rgb) {
+                targetRgb = rgb;
+                selectedColorDisplay.textContent = hexColor.toUpperCase();
+                // We could re-process immediately here, but it's better to let the user click the button.
+            }
+        }
+
+        /**
+         * Updates the color tolerance based on the slider value.
+         * @param {string} value The new tolerance value (string).
+         */
+        function updateTolerance(value) {
+            tolerance = parseInt(value, 10);
+            toleranceValueSpan.textContent = tolerance;
+        }
+
+        /**
+         * Toggles the eyedropper mode and sets up the click listener on the canvas.
+         */
+        function activateEyedropperMode() {
+            isEyedropperActive = true;
+            eyedropperTip.classList.remove('hidden');
+            processedCanvas.style.cursor = 'crosshair';
+            statusMessage.textContent = 'Клікніть на зображенні, щоб вибрати колір!';
+            statusMessage.classList.remove('text-green-600');
+            statusMessage.classList.add('text-yellow-600');
+
+            // The user must process the image first to see it on the canvas
+            if (originalImg && processButton.disabled === false) {
+                 processImage();
+            } else if (!originalImg) {
+                statusMessage.textContent = 'Спочатку завантажте зображення.';
+                statusMessage.classList.add('text-red-500');
+            }
+        }
+        
+        /**
+         * Handles the click event on the canvas when eyedropper mode is active.
+         * @param {Event} event The mouse click event.
+         */
+        function handleCanvasClick(event) {
+            if (!isEyedropperActive || !originalImg) return;
+
+            // Get mouse position relative to the canvas
+            const rect = processedCanvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            // Scale coordinates to the actual canvas resolution
+            const scaleX = processedCanvas.width / rect.width;
+            const scaleY = processedCanvas.height / rect.height;
+            const canvasX = Math.floor(x * scaleX);
+            const canvasY = Math.floor(y * scaleY);
+            
+            // Get pixel data at the clicked location
+            let pixelData;
+            try {
+                // Get image data from the current canvas state
+                pixelData = ctx.getImageData(canvasX, canvasY, 1, 1).data;
+            } catch (e) {
+                // This catch handles security errors (Tainted canvas) if image is from a different origin,
+                // though usually file upload avoids this.
+                statusMessage.textContent = 'Помилка безпеки: неможливо вибрати колір з зображення.';
+                statusMessage.classList.add('text-red-500');
+                deactivateEyedropperMode();
+                return;
+            }
+            
+            const r = pixelData[0];
+            const g = pixelData[1];
+            const b = pixelData[2];
+
+            // Convert RGB to HEX
+            const componentToHex = (c) => {
+                const hex = c.toString(16);
+                return hex.length === 1 ? "0" + hex : hex;
+            }
+            const newHex = `#${componentToHex(r)}${componentToHex(g)}${componentToHex(b)}`;
+
+            // Update state and UI
+            colorInput.value = newHex;
+            updateTargetColor(newHex);
+            
+            statusMessage.textContent = `Колір ${newHex.toUpperCase()} вибрано! Натисніть "Видалити Фон".`;
+            statusMessage.classList.remove('text-yellow-600');
+            statusMessage.classList.add('text-green-600');
+
+            deactivateEyedropperMode();
+        }
+        
+        /**
+         * Deactivates the eyedropper mode.
+         */
+        function deactivateEyedropperMode() {
+            isEyedropperActive = false;
+            eyedropperTip.classList.add('hidden');
+            processedCanvas.style.cursor = 'pointer';
+        }
+        
+        // Add the click listener to the canvas (outside of functions)
+        processedCanvas.addEventListener('click', handleCanvasClick);
 
         /**
          * Converts the uploaded file into an image element and displays it.
@@ -105,11 +278,12 @@
             processButton.disabled = true;
             downloadLink.classList.add('hidden');
             previewArea.classList.add('hidden');
+            settingsArea.classList.add('hidden'); // Hide settings until image loads
 
             // Check file type
             if (!file.type.startsWith('image/')) {
-                statusMessage.textContent = 'Please upload a valid image file.';
-                statusMessage.classList.remove('text-green-500', 'text-red-500');
+                statusMessage.textContent = 'Будь ласка, завантажте дійсний файл зображення.';
+                statusMessage.classList.remove('text-green-600', 'text-red-500');
                 statusMessage.classList.add('text-yellow-600');
                 return;
             }
@@ -118,17 +292,28 @@
             reader.onload = (e) => {
                 originalImage.src = e.target.result;
                 originalImg = new Image();
+                originalImg.crossOrigin = "Anonymous"; // Required for potential image processing, though typically not needed for same-origin (user file uploads)
+                
                 originalImg.onload = () => {
                     // Update UI state
                     previewArea.classList.remove('hidden');
+                    settingsArea.classList.remove('hidden'); // Show settings after image loads
                     document.getElementById('controls').classList.remove('hidden');
                     processButton.disabled = false;
-                    statusMessage.textContent = 'Image uploaded. Ready to process.';
+                    statusMessage.textContent = 'Зображення завантажено. Готово до обробки.';
                     statusMessage.classList.remove('text-red-500', 'text-yellow-600');
                     statusMessage.classList.add('text-green-600');
+
+                    // Draw image to canvas immediately for color selection mode to work
+                    const w = originalImg.width;
+                    const h = originalImg.height;
+                    processedCanvas.width = w;
+                    processedCanvas.height = h;
+                    // Draw original image to the canvas
+                    ctx.drawImage(originalImg, 0, 0, w, h);
                 };
                 originalImg.onerror = () => {
-                    statusMessage.textContent = 'Error loading image.';
+                    statusMessage.textContent = 'Помилка завантаження зображення.';
                     statusMessage.classList.add('text-red-500');
                     processButton.disabled = true;
                 };
@@ -138,70 +323,82 @@
         }
 
         /**
-         * Processes the image by setting white pixels to transparent.
+         * Processes the image by setting the selected color pixels (within tolerance) to transparent.
          */
         function processImage() {
             if (!originalImg) {
-                statusMessage.textContent = 'Please upload an image first.';
+                statusMessage.textContent = 'Будь ласка, спочатку завантажте зображення.';
                 statusMessage.classList.add('text-red-500');
                 return;
             }
 
-            statusMessage.textContent = 'Processing image...';
+            deactivateEyedropperMode();
+            statusMessage.textContent = 'Обробка зображення...';
             processButton.disabled = true;
             downloadLink.classList.add('hidden');
 
             try {
-                // 1. Set canvas size to match the original image
+                // 1. Set canvas size to match the original image and redraw the original image
                 const w = originalImg.width;
                 const h = originalImg.height;
                 processedCanvas.width = w;
                 processedCanvas.height = h;
+                ctx.drawImage(originalImg, 0, 0, w, h); // Always redraw original image before processing
 
-                // 2. Draw the image onto the canvas
-                ctx.drawImage(originalImg, 0, 0, w, h);
-
-                // 3. Get the pixel data
+                // 2. Get the pixel data
                 const imageData = ctx.getImageData(0, 0, w, h);
                 const data = imageData.data;
 
-                // Define the tolerance for "white"
-                // If R, G, and B are all above this value, we consider it white/near-white.
-                const whiteThreshold = 245; 
+                // Target color components
+                const tr = targetRgb.r;
+                const tg = targetRgb.g;
+                const tb = targetRgb.b;
+                // Tolerance value
+                const tol = tolerance;
 
-                // 4. Iterate through all pixels (r, g, b, a)
+                // 3. Iterate through all pixels (r, g, b, a)
                 for (let i = 0; i < data.length; i += 4) {
                     const r = data[i];     // Red
                     const g = data[i + 1]; // Green
                     const b = data[i + 2]; // Blue
 
-                    // Check if the pixel is close to white
-                    if (r >= whiteThreshold && g >= whiteThreshold && b >= whiteThreshold) {
+                    // Check if the pixel color is within the tolerance range of the target color
+                    // This calculates the difference for each channel and checks if it's within tolerance.
+                    const rDiff = Math.abs(r - tr);
+                    const gDiff = Math.abs(g - tg);
+                    const bDiff = Math.abs(b - tb);
+                    
+                    // A simple check: if the max difference in any channel is less than or equal to tolerance
+                    if (rDiff <= tol && gDiff <= tol && bDiff <= tol) {
                         // Set Alpha channel (data[i + 3]) to 0 (fully transparent)
                         data[i + 3] = 0;
                     }
                 }
 
-                // 5. Put the modified pixel data back onto the canvas
+                // 4. Put the modified pixel data back onto the canvas
                 ctx.putImageData(imageData, 0, 0);
 
-                // 6. Prepare the download link
+                // 5. Prepare the download link
                 const dataURL = processedCanvas.toDataURL('image/png');
                 downloadLink.href = dataURL;
                 downloadLink.classList.remove('hidden');
                 
-                statusMessage.textContent = 'Processing complete! Download your transparent PNG.';
+                statusMessage.textContent = 'Обробка завершена! Завантажте свій прозорий PNG.';
                 statusMessage.classList.remove('text-red-500', 'text-yellow-600');
                 statusMessage.classList.add('text-green-600');
 
             } catch (error) {
                 console.error("Image processing failed:", error);
-                statusMessage.textContent = 'An error occurred during processing.';
+                statusMessage.textContent = 'Під час обробки сталася помилка.';
                 statusMessage.classList.add('text-red-500');
             } finally {
                 processButton.disabled = false;
             }
         }
+        
+        // Initialize the UI elements with initial values
+        updateTargetColor(colorInput.value);
+        updateTolerance(toleranceSlider.value);
     </script>
 </body>
 </html>
